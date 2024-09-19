@@ -1,0 +1,107 @@
+<!-- views/login.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login with MetaMask</title>
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <style>
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .login-box {
+      padding: 40px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .center-text {
+      text-align: center;
+    }
+    .error-message {
+      color: red;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box z-depth-2">
+      <h4 class="center-text">Login with MetaMask</h4>
+      <button id="connectButton" class="btn waves-effect waves-light full-width" style="width: 100%; margin-top: 20px;">Connect MetaMask</button>
+      
+      <!-- Display connected account -->
+      <div id="accountInfo" class="center-text" style="margin-top: 20px;"></div>
+      <div id="errorMessage" class="center-text error-message">
+        
+      </div>
+      
+      
+      <button id="loginButton" class="btn waves-effect waves-light full-width" style="width: 100%; margin-top: 20px;">Login</button>
+    </div>
+  </div>
+
+  <script>
+    async function getNonce() {
+      const response = await fetch('/api/nonce');
+      const data = await response.json();
+      return data.nonce;
+    }
+    let accounts, account;
+    document.getElementById('connectButton').addEventListener('click', async () => {
+      if (window.ethereum) {
+        try {
+          accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          account = accounts[0];
+
+          document.getElementById('accountInfo').innerText = `Connected as: ${account}`;
+          
+        } catch (error) {
+          document.getElementById('errorMessage').innerText = 'MetaMask connection failed.';
+        }
+      } else {
+        alert('MetaMask is not installed. Please install it to use this app.');
+      }
+    });
+
+document.getElementById('loginButton').addEventListener('click', async () => {
+    if (!account) {
+        document.getElementById('errorMessage').innerText = 'Please connect to MetaMask first.';
+        return;
+    }
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account }),
+        });
+
+        const res = await response.json();
+        if (!response.ok) {
+            throw new Error(res.message || 'Login failed');
+        } else {
+            // Check if the response indicates admin (employer) or employee
+            if (res.role === 'admin') {
+                window.location.href = '/dashboard';
+            } else if (res.role === 'employee') {
+                window.location.href = '/employee';
+            }
+        }
+    } catch (error) {
+        document.getElementById('errorMessage').innerText = error.message || 'An error occurred during login.';
+    }
+});
+    
+    
+  </script>
+</body>
+</html>

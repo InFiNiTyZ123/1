@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employer Dashboard</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            color: #333;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th, .table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .table th {
+            background-color: #f8f8f8;
+        }
+
+        .cancel-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background-color: #c82333;
+        }
+
+        .action-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .refresh-btn {
+            background-color: #17a2b8;
+            margin-right: 10px;
+        }
+
+        .refresh-btn:hover {
+            background-color: #138496;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script>
+        let web3;
+        let contract;
+        const contractAddress = "0x1A2F73b93117a885b9520028D6790480322D0C61"; // Replace with your contract address
+        const abi = [
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "AddedToWhitelist",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "RemovedFromWhitelist",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "unlockTime",
+				"type": "uint256"
+			}
+		],
+		"name": "SalaryAssigned",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			}
+		],
+		"name": "SalaryCancelled",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newUnlockTime",
+				"type": "uint256"
+			}
+		],
+		"name": "SalaryModified",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "SalaryWithdrawn",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_employeeAddress",
+				"type": "address"
+			}
+		],
+		"name": "addEmployee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "addToList",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "admin",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lockDuration",
+				"type": "uint256"
+			}
+		],
+		"name": "assignSalary",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			}
+		],
+		"name": "cancelSalary",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_newAdmin",
+				"type": "address"
+			}
+		],
+		"name": "changeAdmin",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_employeeAddress",
+				"type": "address"
+			}
+		],
+		"name": "deleteEmployee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "employeeAddresses",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "employees",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "salary",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "unlockTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isEmployed",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAdmin",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAllEmployeeAddresses",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAllSalaryDetails",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bool[]",
+				"name": "",
+				"type": "bool[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getContractBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "employeeAddress",
+				"type": "address"
+			}
+		],
+		"name": "getEmployeeSalary",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "employeeAddress",
+				"type": "address"
+			}
+		],
+		"name": "getEmployeeUnlockTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "inTheList",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_account",
+				"type": "address"
+			}
+		],
+		"name": "isAdmin",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "isWhitelisted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "employee",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "newAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "newLockDuration",
+				"type": "uint256"
+			}
+		],
+		"name": "modifySalary",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "nameList",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_employeeAddress",
+				"type": "address"
+			}
+		],
+		"name": "removeEmployee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_account",
+				"type": "address"
+			}
+		],
+		"name": "removeFromList",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawContractBalance",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawSalary",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	}
+]     
+
+
+        // Connect to MetaMask and load the contract
+        async function connectMetaMask() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    await window.ethereum.request({ method: "eth_requestAccounts" });
+                    contract = new web3.eth.Contract(abi, contractAddress);
+                    console.log("MetaMask connected and contract loaded");
+                    await getContractBalance();
+                    await loadNewEmployeeList();
+                    await loadEmployeeList();
+                } catch (error) {
+                    console.error("Error connecting to MetaMask", error);
+                }
+            } else {
+                alert("MetaMask is required to interact with this dApp.");
+            }
+        }
+
+        // Add Employee
+		async function addEmployee() {
+		const employeeAddress = document.getElementById('employeeAddress').value;
+
+		if (!web3.utils.isAddress(employeeAddress)) {
+			alert('Invalid address. Please enter a valid Ethereum address.');
+			return;
+		}
+
+		// Get the connected MetaMask address
+		const accounts = await web3.eth.getAccounts();
+		const connectedAddress = accounts[0];
+
+		// Check if the entered address is the same as the connected MetaMask address
+		if (employeeAddress.toLowerCase() === connectedAddress.toLowerCase()) {
+			alert("You cannot add your own MetaMask address as an employee.");
+			return;
+		}
+
+		try {
+			await contract.methods.addEmployee(employeeAddress).send({ from: connectedAddress });
+			alert("Employee address added successfully!");
+			// Optionally refresh employee list here
+			await loadNewEmployeeList();
+		} catch (error) {
+			console.error("Error adding employee:", error);
+			alert("Failed to add employee. Please try again.");
+			}
+		}
+
+        // Get Contract Balance
+        async function getContractBalance() {
+            try {
+                const balance = await contract.methods.getContractBalance().call();
+                document.getElementById("contractBalance").innerText = web3.utils.fromWei(balance, "ether") + " ETH";
+            } catch (error) {
+                console.error("Error getting contract balance:", error);
+            }
+        }
+
+        // Withdraw Contract Balance
+        async function withdrawBalance() {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                await contract.methods.withdrawContractBalance().send({ from: accounts[0] });
+                alert("Contract balance withdrawn!");
+                await getContractBalance();
+            } catch (error) {
+                console.error("Error withdrawing balance:", error);
+            }
+        }
+
+        // Deposit Salary
+        async function depositSalary() {
+        const employeeAddress = document.getElementById("salaryEmployeeAddress").value;
+        const salaryAmount = document.getElementById("salaryAmount").value;
+        const lockReleaseDateTime = document.getElementById("lockReleaseDateTime").value; // Get the date and time from the picker
+        const accounts = await web3.eth.getAccounts();
+        
+        try {
+            const amountInWei = web3.utils.toWei(salaryAmount, 'ether');
+
+            // Convert the selected date and time to a Unix timestamp
+            const lockReleaseDate = new Date(lockReleaseDateTime).getTime() / 1000; // Convert to seconds (Unix timestamp)
+
+            // Get the current time as a Unix timestamp
+            const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+
+            // Calculate the lock duration in seconds
+            const lockDuration = lockReleaseDate - currentTime;
+            
+            if (lockDuration <= 0) {
+                alert("The lock release date and time must be in the future.");
+                return;
+            }
+
+            // Call the smart contract method and send the transaction
+            await contract.methods.assignSalary(employeeAddress, amountInWei, lockDuration)
+                .send({ from: accounts[0], value: amountInWei });
+            
+            alert("Salary deposited successfully!");
+            await loadEmployeeList();  // Refresh the employee list
+        } catch (error) {
+            console.error("Error depositing salary:", error);
+          }
+        }
+
+        // Load New Employee address from the smart contract
+        async function loadNewEmployeeList() {
+            const newEmployeeList = document.getElementById('newEmployeeList');
+            newEmployeeList.innerHTML = ''; // Clear the list
+
+            try {
+                // Call your smart contract method to get the employee addresses (replace 'getEmployees' with your contract method)
+                const employeeAddresses = await contract.methods.getAllEmployeeAddresses().call(); // Replace 'getEmployees' with the correct method name
+                
+                employeeAddresses.forEach(address => {
+                    const li = document.createElement('li');
+                    li.textContent = address;
+                    newEmployeeList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error loading employee list:", error);
+            }
+        }
+
+        // Load Employee Salary List  (replace with actual contract call)
+        async function loadEmployeeList() {
+        const employeeTable = document.getElementById('employeeTableBody');
+        employeeTable.innerHTML = ''; // Clear the table
+
+        try {
+            const employeeAddresses = await contract.methods.getAllEmployeeAddresses().call();
+
+            for (let i = 0; i < employeeAddresses.length; i++) {
+                const employeeAddress = employeeAddresses[i];
+
+                const salary = await contract.methods.getEmployeeSalary(employeeAddress).call();
+                const unlockTimeBigInt = await contract.methods.getEmployeeUnlockTime(employeeAddress).call();
+
+                // Convert BigInt unlockTime to a regular number
+                const unlockTime = Number(unlockTimeBigInt);
+
+                // Determine timelock status
+                const timeLockStatus = (Date.now() / 1000) < unlockTime ? 'Active' : 'Expired';
+
+                // Format unlockTime to display date and time
+                const releaseDate = new Date(unlockTime * 1000).toLocaleString(); // Use toLocaleString for date and time
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${employeeAddress}</td>
+                    <td>${web3.utils.fromWei(salary, 'ether')} ETH</td>
+                    <td>${timeLockStatus}</td>
+                    <td>${releaseDate}</td>
+                    <td>
+                        <button class="action-btn" onclick="modifySalary('${employeeAddress}')">Modify</button>
+                        <button class="cancel-btn" onclick="cancelSalary('${employeeAddress}')">Cancel</button>
+                        <button class="remove-btn" onclick="removeEmployee('${employeeAddress}')">Remove</button>
+                        <button class="withdraw-btn" onclick="withdrawSalary('${employeeAddress}')">Withdraw</button>
+                    </td>
+                `;
+                employeeTable.appendChild(row);
+            }
+        } catch (error) {
+            console.error("Error loading employee list:", error);
+          }
+        }
+
+        // Placeholder Modify Salary function
+        async function modifySalary(employeeAddress) {
+        const accounts = await web3.eth.getAccounts();
+
+        // Prompt the user for the new salary amount
+        const newSalary = prompt(`Enter new salary for ${employeeAddress}`);
+        if (!newSalary) {
+            alert("Salary modification cancelled.");
+            return;
+        }
+
+        // Prompt the user for the new release date and time
+        const newReleaseDateTime = prompt(`Enter new release date and time for ${employeeAddress} (in the format YYYY-MM-DD HH:MM)`);
+
+        if (!newReleaseDateTime) {
+            alert("Release date modification cancelled.");
+            return;
+        }
+
+        try {
+            // Convert new salary to Wei
+            const newSalaryInWei = web3.utils.toWei(newSalary, 'ether');
+
+            // Convert the new release date and time to a Unix timestamp
+            const newReleaseDate = new Date(newReleaseDateTime).getTime() / 1000; // Convert to seconds (Unix timestamp)
+
+            // Get the current time as a Unix timestamp
+            const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+
+            // Calculate the new lock duration in seconds
+            const newLockDuration = newReleaseDate - currentTime;
+
+            if (newLockDuration <= 0) {
+                alert("The new release date and time must be in the future.");
+                return;
+            }
+
+            // Call the smart contract method to modify the salary and lock duration and send the salary difference
+            await contract.methods.modifySalary(employeeAddress, newSalaryInWei, newLockDuration)
+                .send({ from: accounts[0], value: newSalaryInWei });
+
+            alert("Salary and release time modified successfully!");
+
+            // Refresh the employee list
+            await loadEmployeeList();
+        } catch (error) {
+            console.error("Error modifying salary and release time:", error);
+          }
+        }
+        
+        // Placeholder Cancel Salary function
+        async function cancelSalary(employeeAddress) {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                await contract.methods.cancelSalary(employeeAddress).send({ from: accounts[0] });
+                alert(`Salary deposit for ${employeeAddress} has been canceled`);
+                await loadEmployeeList();
+            } catch (error) {
+                console.error("Error canceling salary:", error);
+            }
+        }
+
+        // Placeholder Remove Employee function
+        async function removeEmployee(employeeAddress) {
+        const accounts = await web3.eth.getAccounts();
+
+        try {
+            // Call the smart contract's removeEmployee method
+            await contract.methods.removeEmployee(employeeAddress)
+                .send({ from: accounts[0] });
+            
+            alert("Employee removed successfully!");
+
+            // Refresh the employee list
+            await loadEmployeeList();
+        } catch (error) {
+            console.error("Error removing employee:", error);
+          }
+        }
+
+        // withdraw
+        async function withdrawEmployeeSalary(employeeAddress) {
+    if (!employeeAddress) {
+        alert("No employee address provided.");
+        return;
+    }
+
+    try {
+        const accounts = await web3.eth.getAccounts(); // Get connected MetaMask account
+        
+        // Call the smart contract withdrawSalary method for the employee address
+        await contract.methods.withdrawSalary().send({ from: employeeAddress });
+
+        alert(`Salary withdrawn successfully for ${employeeAddress}`);
+
+        // Optionally, refresh the contract balance and employee list after withdrawal
+        await getContractBalance();
+        await loadEmployeeList();
+
+    } catch (error) {
+        console.error("Error withdrawing salary:", error);
+        alert("Failed to withdraw salary. Please try again.");
+    }
+}
+
+
+        window.onload = connectMetaMask;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Employer Dashboard</h1>
+
+        <!-- Section: Add New Employee -->
+        <section class="section">
+            <h2 class="section-title">Add New Employee Address</h2>
+            <input type="text" id="employeeAddress" placeholder="Enter Employee Address">
+            <button onclick="addEmployee()">Add Employee</button>
+        </section>
+
+        <!-- Section: Contract Balance -->
+        <section class="section">
+            <h2 class="section-title">Contract Balance</h2>
+            <p>Current Balance: <span id="contractBalance">0 ETH</span></p>
+            <button class="refresh-btn" onclick="getContractBalance()">Refresh Balance</button>
+            <button class="cancel-btn" onclick="withdrawBalance()">Withdraw Balance</button>
+        </section>
+
+        <!-- Section: Newly Added Employee Addresses -->
+        <section class="section">
+            <h2 class="section-title">Newly Added Employee Addresses</h2>
+            <ul id="newEmployeeList"></ul>
+        </section>
+
+        <!-- Section: Deposit Salary -->
+        <section class="section">
+            <h2 class="section-title">Deposit Salary</h2>
+            <label for="salaryEmployeeAddress">Employee Address</label>
+            <input type="text" id="salaryEmployeeAddress" placeholder="Enter Employee Address">
+            <label for="salaryAmount">Salary Amount (ETH)</label>
+            <input type="number" id="salaryAmount" placeholder="Enter Salary Amount">
+            <label for="lockDuration">Lock Release Date & Time</label>
+            <input type="datetime-local" id="lockReleaseDateTime" class="form-control" placeholder="Enter Lock Release Date & Time">
+            <button onclick="depositSalary()">Deposit Salary</button>
+        </section>
+
+        <!-- Section: Employee List -->
+        <section class="section">
+            <h2 class="section-title">Employee List</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Employee Address</th>
+                        <th>Salary Amount</th>
+                        <th>TimeLock Status</th>
+                        <th>Release Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                    <!-- Sample data, will be dynamically generated in practice -->
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>
