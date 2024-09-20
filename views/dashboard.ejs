@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header, footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+        }
+        main {
+            display: flex;
+            flex: 1;
+        }
+        nav {
+            width: 200px;
+            background-color: #f4f4f4;
+            padding: 1rem;
+            border-right: 1px solid #ddd;
+        }
+        section {
+            flex: 1;
+            padding: 2rem;
+        }
+        footer {
+            background-color: #444;
+        }
+        .welcome {
+            font-size: 24px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1>Dashboard</h1>
+    </header>
+
+    <!-- Main content with Sidebar and Welcome Message -->
+    <main>
+        <!-- Sidebar -->
+        <nav>
+            <ul>
+                <li><a href="/employer">Employer</a></li>
+                <li><a href="#">Profile</a></li>
+                <li><a href="#">Settings</a></li>
+                <li><a href="#">Logout</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Section -->
+        <section>
+            <div class="welcome" id="welcomeMessage">Welcome, <%= account %></div>
+            <p>This is your dashboard. Here you can manage your profile and settings.</p>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Footer content here</p>
+    </footer>
+
+    <script>
+      /*
+        // Fetch the user address from the query params or fallback to 'Guest'
+        const params = new URLSearchParams(window.location.search);
+        const userAddress = params.get('address') || 'Guest';
+*/
+        // Display the user's address in the welcome message
+       // document.getElementById('welcomeMessage').textContent = `Welcome, ${userAddress}`;
+    </script>
+</body>
+</html>
